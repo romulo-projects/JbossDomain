@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<host xmlns="urn:jboss:domain:community:20.0" name="host2">
+
+    <management>
+        <management-interfaces>
+            <native-interface>
+                <socket interface="management" port="9999"/>
+            </native-interface>
+        </management-interfaces>
+    </management>
+
+    <domain-controller>
+        <remote>
+            <discovery-options>
+                <static-discovery name="primary"
+                    protocol="remote"
+                    host="domain-controller"
+                    port="9999"/>
+            </discovery-options>
+        </remote>
+    </domain-controller>
+
+    <interfaces>
+        <interface name="management">
+            <inet-address value="0.0.0.0"/>
+        </interface>
+        <interface name="public">
+            <inet-address value="0.0.0.0"/>
+        </interface>
+    </interfaces>
+
+    <jvms>
+        <jvm name="default">
+            <heap size="64m" max-size="256m"/>
+        </jvm>
+    </jvms>
+
+    <servers>
+        <server name="server-two" group="main-server-group"/>
+    </servers>
+</host>

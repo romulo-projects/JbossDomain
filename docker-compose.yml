@@ -1,0 +1,68 @@
+services:
+  domain-controller:
+    build:
+      context: ./domain-controller
+    container_name: domain-controller
+    command: >
+     /opt/jboss/wildfly/bin/domain.sh
+     --host-config=host-master.xml -b 0.0.0.0
+     -bmanagement 0.0.0.0
+    ports:
+     - "9990:9990"
+     - "9999:9999"
+    volumes:
+     - ./domain-controller/config/host-master.xml:/opt/jboss/wildfly/domain/configuration/host-master.xml:ro
+     - ./domain-controller/config/domain.xml:/opt/jboss/wildfly/domain/configuration/domain.xml:ro
+    networks:
+     - wildfly-net
+
+  host1:
+    image: quay.io/wildfly/wildfly:latest
+    container_name: host1
+    command: >
+      /opt/jboss/wildfly/bin/domain.sh
+      --host-config=host1.xml
+      -Djboss.domain.master.address=domain-controller
+      -b 0.0.0.0
+      -bmanagement 0.0.0.0
+    volumes:
+      - ./host1/config/host1.xml:/opt/jboss/wildfly/domain/configuration/host1.xml:ro
+    depends_on:
+      - domain-controller
+    networks:
+      - wildfly-net
+
+
+  host2:
+    image: quay.io/wildfly/wildfly:latest
+    container_name: host2
+    command: >
+      /opt/jboss/wildfly/bin/domain.sh
+      --host-config=host2.xml
+      -Djboss.domain.master.address=domain-controller
+      -b 0.0.0.0
+      -bmanagement 0.0.0.0
+    volumes:
+      - ./host2/config/host2.xml:/opt/jboss/wildfly/domain/configuration/host2.xml:ro
+    depends_on:
+      - domain-controller
+    networks:
+      - wildfly-net
+
+  
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-lb
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - host1
+      - host2      
+    networks:
+      - wildfly-net
+
+networks:
+  wildfly-net:
+    driver: bridge
