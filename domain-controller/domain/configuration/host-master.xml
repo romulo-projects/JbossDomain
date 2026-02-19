@@ -56,14 +56,14 @@
         </jvm>
     </jvms>
     <servers>
-        <server name="server-one" group="main-server-group"/>
-        <!--<server name="server-two" group="main-server-group" auto-start="true">
+        <!--<server name="server-one" group="main-server-group"/>
+        <server name="server-two" group="main-server-group" auto-start="true">
             <jvm name="default"/>
             <socket-bindings port-offset="150"/>
-        </server>-->
+        </server>
         <server name="server-three" group="other-server-group" auto-start="false">
             <jvm name="default"/>
-            <socket-bindings port-offset="250"/>
+            <socket-bindings port-offset="250"/>-->
         </server>
     </servers>
     <profile>
