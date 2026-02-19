@@ -11,8 +11,10 @@ services:
      - "9990:9990"
      - "9999:9999"
     volumes:
-     - ./domain-controller/config/host-master.xml:/opt/jboss/wildfly/domain/configuration/host-master.xml:ro
-     - ./domain-controller/config/domain.xml:/opt/jboss/wildfly/domain/configuration/domain.xml:ro
+    - ./domain-controller/config/host-master.xml:/opt/jboss/wildfly/domain/configuration/host-master.xml:ro
+    - ./domain-controller/domain/configuration/mgmt-users.properties:/opt/jboss/wildfly/domain/configuration/mgmt-users.properties
+    - ./domain-controller/domain/configuration/mgmt-groups.properties:/opt/jboss/wildfly/domain/configuration/mgmt-groups.properties
+    #- ./domain-controller/config/domain.xml:/opt/jboss/wildfly/domain/configuration/domain.xml:ro
     networks:
      - wildfly-net
 
@@ -27,6 +29,8 @@ services:
       -bmanagement 0.0.0.0
     volumes:
       - ./host1/config/host1.xml:/opt/jboss/wildfly/domain/configuration/host1.xml:ro
+      - ./domain-controller/domain/configuration/mgmt-users.properties:/opt/jboss/wildfly/domain/configuration/mgmt-users.properties
+      - ./domain-controller/domain/configuration/mgmt-groups.properties:/opt/jboss/wildfly/domain/configuration/mgmt-groups.properties
     depends_on:
       - domain-controller
     networks:

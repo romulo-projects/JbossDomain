@@ -1938,11 +1938,11 @@
     <interfaces>
         <interface name="management"/>
         <interface name="private">
-            <inet-address value="${jboss.bind.address.private:127.0.0.1}"/>
+            <inet-address value="${jboss.bind.address.private:0.0.0.0}"/>
         </interface>
         <interface name="public"/>
         <interface name="unsecure">
-            <inet-address value="${jboss.bind.address.unsecure:127.0.0.1}"/>
+            <inet-address value="${jboss.bind.address.unsecure:0.0.0.0}"/>
         </interface>
     </interfaces>
     <socket-binding-groups>
