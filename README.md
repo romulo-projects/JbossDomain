@@ -14,36 +14,37 @@ Este laboratório tem como objetivo **aprimorar o conhecimento em WildFly/JBoss 
 
 ---
 
-## Estrutura do Lab
-
 JbossDomain/
 ├── domain-controller/
-│ ├── app/
-│ │ ├── hello-world-war-1.0.0/
-│ │ │ ├── META-INF/
-│ │ │ ├── WEB-INF/
-│ │ │ └── index.jsp
-│ │ ├── maven-archiver/
-│ │ │ └── pom.properties
-│ │ └── app.war
-│ ├── config/
-│ │ ├── domain.xml
-│ │ └── host-master.xml
-│ ├── domain/
-│ │ └── configuration/
-│ │ ├── host-master.xml
-│ │ ├── mgmt-groups.properties
-│ │ └── mgmt-users.properties
-│ └── logs/
+│   ├── app/
+│   │   ├── hello-world-war-1.0.0/
+│   │   │   ├── META-INF/
+│   │   │   ├── WEB-INF/
+│   │   │   └── index.jsp
+│   │   ├── maven-archiver/
+│   │   │   └── pom.properties
+│   │   └── app.war
+│   ├── config/
+│   │   ├── domain.xml          <-- Domain Controller config
+│   │   └── host-master.xml     <-- Host Controller principal
+│   ├── domain/
+│   │   └── configuration/
+│   │       ├── host-master.xml <-- Host Controller runtime copy
+│   │       ├── mgmt-groups.properties
+│   │       └── mgmt-users.properties
+│   └── logs/
 ├── host1/
-│ ├── config/host1.xml
-│ └── logs/
+│   ├── config/
+│   │   └── host1.xml            <-- Slave host1
+│   └── logs/
 ├── host2/
-│ ├── config/host2.xml
-│ └── logs/
+│   ├── config/
+│   │   └── host2.xml            <-- Slave host2
+│   └── logs/
 ├── nginx/
-│ └── nginx.conf
+│   └── nginx.conf
 └── docker-compose.yml
+
 
 
 ---
