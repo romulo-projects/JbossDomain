@@ -51,13 +51,13 @@ JbossDomain/
 ---
 
 ## Configuração
-
+```
 Domain Controller
 └─ host1
    └─ server-one (main-server-group)
    └─ host2
    └─ server-two (main-server-group)
-
+```
 ### Domain Controller
 
 - Porta de management: `9990`  
