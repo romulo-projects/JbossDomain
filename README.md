@@ -4,136 +4,212 @@
 
 Este laboratório tem como objetivo **aprimorar o conhecimento em WildFly/JBoss Domain Mode**, incluindo:
 
-- Configuração de **Domain Controller** e **hosts gerenciados**
-- Deploy de aplicações (`WAR`) em múltiplos hosts
-- Testes de **balanceamento interno**
-- Observabilidade, failover e troubleshooting
-- Experimentos com **socket bindings**, profiles e context paths
+* Configuração de Domain Controller e hosts gerenciados
+* Deploy de aplicações (`WAR`) em múltiplos hosts
+* Testes de balanceamento interno
+* Observabilidade, failover e troubleshooting
+* Experimentos com socket bindings, profiles e context paths
 
 > Nota: Este lab é voltado para aprendizado. O NGINX serve apenas para testes de balanceamento externo.
 
 ---
 
-## Estrutura do Lab
+## Clone do Projeto
 
-JbossDomain/
-├── domain-controller/
-│ ├── app/
-│ │ ├── hello-world-war-1.0.0/
-│ │ │ ├── META-INF/
-│ │ │ ├── WEB-INF/
-│ │ │ └── index.jsp
-│ │ ├── maven-archiver/
-│ │ │ └── pom.properties
-│ │ └── app.war
-│ ├── config/
-│ │ ├── domain.xml
-│ │ └── host-master.xml
-│ ├── domain/
-│ │ └── configuration/
-│ │ ├── host-master.xml
-│ │ ├── mgmt-groups.properties
-│ │ └── mgmt-users.properties
-│ └── logs/
-├── host1/
-│ ├── config/host1.xml
-│ └── logs/
-├── host2/
-│ ├── config/host2.xml
-│ └── logs/
-├── nginx/
-│ └── nginx.conf
-└── docker-compose.yml
-
+```bash
+git clone https://github.com/blcsilva/JbossDomain.git
+cd JbossDomain
+```
 
 ---
 
-## Configuração
+## Subindo o Ambiente
+
+O ambiente é totalmente containerizado via Docker Compose.
+
+### Pré-requisitos
+
+* Docker instalado
+* Docker Compose instalado
+
+### Subir o laboratório
+
+```bash
+docker-compose up -d
+```
+
+Acompanhar logs:
+
+```bash
+docker-compose logs -f
+```
+
+Parar o ambiente:
+
+```bash
+docker-compose down
+```
+
+---
+
+## Credenciais de Acesso
+
+### Domain Controller (Console Web)
+
+* URL: [http://localhost:9990](http://localhost:9990)
+* Usuário: `admin`
+* Senha: `Admin#123`
+
+### Host Controller
+
+* Usuário: `jboss`
+* Senha: `Jboss@123`
+
+---
+
+## Estrutura do Projeto
+
+```
+JbossDomain/
+├── domain-controller/
+│   ├── app/
+│   │   ├── hello-world-war-1.0.0/
+│   │   │   ├── META-INF/
+│   │   │   ├── WEB-INF/
+│   │   │   └── index.jsp
+│   │   ├── maven-archiver/
+│   │   │   └── pom.properties
+│   │   └── app.war
+│   ├── config/
+│   │   ├── domain.xml
+│   │   └── host-master.xml
+│   ├── domain/
+│   │   └── configuration/
+│   │       ├── host-master.xml
+│   │       ├── mgmt-groups.properties
+│   │       └── mgmt-users.properties
+│   └── logs/
+├── host1/
+│   ├── config/
+│   │   └── host1.xml
+│   └── logs/
+├── host2/
+│   ├── config/
+│   │   └── host2.xml
+│   └── logs/
+├── nginx/
+│   └── nginx.conf
+└── docker-compose.yml
+```
+
+---
+
+## Arquitetura do Domain
+
+```
+Domain Controller
+├─ host1
+│  └─ server-one (main-server-group)
+└─ host2
+   └─ server-two (main-server-group)
+```
 
 ### Domain Controller
 
-- Porta de management: `9990`  
-- Porta de domínio: `9999`  
-- Host master: `host-master.xml`  
-- Socket bindings e profiles configurados em `domain.xml`
+* Porta de management: `9990`
+* Porta de domínio: `9999`
+* Host master: `host-master.xml`
+* Socket bindings e profiles configurados em `domain.xml`
 
 ### Hosts Gerenciados
 
 | Host  | Socket Binding Offset | HTTP Port |
-|-------|--------------------|-----------|
-| host1 | 0                  | 8080      |
-| host2 | 150                | 8230      |
+| ----- | --------------------- | --------- |
+| host1 | 0                     | 8080      |
+| host2 | 150                   | 8230      |
 
-- Configurações principais nos arquivos:
-  - `host1/config/host1.xml`
-  - `host2/config/host2.xml`
+Arquivos principais:
+
+* `host1/config/host1.xml`
+* `host2/config/host2.xml`
 
 ---
 
 ## Deploy de Aplicações
 
-- WAR de exemplo: `domain-controller/app/app.war`  
-- Deploy via CLI do Domain Controller:
+WAR de exemplo:
+
+```
+domain-controller/app/app.war
+```
+
+Deploy via CLI do Domain Controller:
 
 ```bash
-# Deploy em todos os hosts do grupo
 /host=*/server=*/:deploy(path=domain-controller/app/app.war, enabled=true)
+```
 
+### Teste da aplicação
 
-Teste de aplicação:
+```bash
+curl http://localhost:8080/app/
+curl http://localhost:8230/app/
+```
 
-curl http://host1:8080/app/
-curl http://host2:8230/app/
+### Undeploy
 
-
-Undeploy:
-
+```bash
 undeploy app.war --server-groups=main-server-group
+```
 
-Testes e Observabilidade
+---
+
+## Testes e Observabilidade
 
 Verificar qual host respondeu:
 
-curl -I http://localhost/app/  # X-Backend pode mostrar host
+```bash
+curl -I http://localhost/app/
+```
 
+Monitoramento via CLI:
 
-Monitorar estado de hosts e deployments via CLI:
-
-# Status do server
+```bash
 /host=*/server=*/:read-attribute(name=status)
 
-# Recursos de deployment
 /host=*/server=*/deployment=app.war:read-resource(include-runtime=true)
 
-# Boot errors
 /host=host1/server=server-one:read-boot-errors()
+```
 
+Parar e iniciar servidores:
 
-Parar e iniciar hosts:
-
+```bash
 /host=host1/server=server-one:stop
 /host=host1/server=server-one:start
+```
 
-Undertow e Context Paths
+---
 
-WAR /app → http://host1:8080/app/
+## Undertow e Context Paths
 
-WAR raiz / → http://host1:8080/ (WildFly welcome page)
+* WAR `/app` → [http://localhost:8080/app/](http://localhost:8080/app/)
+* WAR raiz `/` → [http://localhost:8080/](http://localhost:8080/)
 
-Experimentos sugeridos:
+### Experimentos sugeridos
 
-Deploy de múltiplos WARs em hosts diferentes
+* Deploy de múltiplos WARs em hosts diferentes
+* Ajustar context path e observar comportamento do console
+* Testar failover
+* Alterar `socket-binding-port-offset`
 
-Ajustar context path e observar comportamento do console e links internos
+---
 
-Testar failover e balanceamento de hosts
+## Proxy Reverso (NGINX)
 
-Proxy Reverso (NGINX)
+Uso opcional apenas para balanceamento externo.
 
-O NGINX é opcional, serve apenas para balancear requests HTTP externos.
-
-Configuração simplificada:
-
+```nginx
 upstream wildfly_cluster {
     server host1:8080;
     server host2:8230;
@@ -151,23 +227,23 @@ server {
         proxy_set_header X-Backend $upstream_addr;
     }
 }
+```
 
-Pontos de Aprendizado
+---
 
-Entender Domain Mode e como o master gerencia múltiplos hosts
+## Pontos de Aprendizado
 
-Deploy via server-groups vs deploy por host
+* Entender Domain Mode e gerenciamento centralizado
+* Diferença entre deploy por server-group e por host
+* Uso de `socket-binding-port-offset`
+* Observabilidade via CLI
+* Testes de failover
+* Troubleshooting de boot e runtime
 
-Uso de socket-binding-port-offset e interfaces
+---
 
-Observabilidade via CLI e logs de boot/runtime
+## Referências
 
-Testar failover e comportamento de múltiplos deployments
-
-Referências
-
-WildFly Documentation
-
-WildFly CLI Guide
-
-Domain Mode Overview
+* WildFly Documentation
+* WildFly CLI Guide
+* Domain Mode Overview

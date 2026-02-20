@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 FROM quay.io/wildfly/wildfly:latest
 
 USER root
@@ -34,3 +35,16 @@ RUN /opt/jboss/wildfly/bin/add-user.sh jboss Jboss@123 --silent
 RUN chmod +x /opt/wait-for-it.sh
 
 USER jboss
+=======
+FROM quay.io/wildfly/wildfly:latest
+
+USER root
+
+# Admin do console (opcional)
+RUN /opt/jboss/wildfly/bin/add-user.sh admin Admin#123 --silent
+
+# User usado pelo Host Controller para conectar no Domain Controller
+RUN /opt/jboss/wildfly/bin/add-user.sh jboss Jboss@123 --silent
+
+USER jboss
+>>>>>>> 8b5d76762fa12e297e1badeb24e5b0c522120d2f
