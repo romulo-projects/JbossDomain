@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 FROM quay.io/wildfly/wildfly:latest
 
 USER root
