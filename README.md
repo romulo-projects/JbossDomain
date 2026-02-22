@@ -4,13 +4,13 @@
 
 Este laboratório tem como objetivo **aprimorar o conhecimento em WildFly/JBoss Domain Mode**, incluindo:
 
-* Configuração de Domain Controller e hosts gerenciados
-* Deploy de aplicações (`WAR`) em múltiplos hosts
-* Testes de balanceamento interno
-* Observabilidade, failover e troubleshooting
-* Experimentos com socket bindings, profiles e context paths
+- Configuração de Domain Controller e hosts gerenciados
+- Deploy de aplicações (`WAR`) em múltiplos hosts
+- Testes de balanceamento interno e externo (NGINX)
+- Observabilidade, failover e troubleshooting
+- Experimentos com socket bindings, profiles e context paths
 
-> Nota: Este lab é voltado para aprendizado. O NGINX serve apenas para testes de balanceamento externo.
+> Nota: Este lab é voltado para aprendizado. **Não use essas configurações/credenciais em produção.**
 
 ---
 
@@ -23,103 +23,119 @@ cd JbossDomain
 
 ---
 
-## Subindo o Ambiente
-
-O ambiente é totalmente containerizado via Docker Compose.
+## Subindo o Ambiente (Docker Compose)
 
 ### Pré-requisitos
 
-* Docker instalado
-* Docker Compose instalado
+- Docker instalado
+- Docker Compose instalado
+
+### Observação importante (WSL/Windows/OneDrive)
+
+Se você estiver rodando o projeto a partir de `/mnt/c/...` (ex: OneDrive no Windows), **bind mounts** para bancos (MongoDB/OpenSearch) podem falhar por permissão/locks.
+Por isso, o compose deste lab usa **volumes nomeados** do Docker para persistência do MongoDB/OpenSearch.
 
 ### Subir o laboratório
 
+1) (Recomendado) Limpar ambiente anterior:
+
 ```bash
-docker-compose up -d
+docker compose down -v --remove-orphans
 ```
 
-Acompanhar logs:
+2) Build das imagens:
 
 ```bash
-docker-compose logs -f
+docker compose build --no-cache
+```
+
+3) Subir o ambiente:
+
+```bash
+docker compose up -d
+```
+
+4) Acompanhar logs:
+
+```bash
+docker compose logs -f
 ```
 
 Parar o ambiente:
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ---
 
-## Credenciais de Acesso
+## Endpoints / Portas
 
 ### Domain Controller (Console Web)
 
-* URL: [http://localhost:9990](http://localhost:9990)
-* Usuário: `admin`
-* Senha: `Admin#123`
+- URL: http://localhost:9990
+- Usuário: `admin`
+- Senha: `Admin#123`
 
-### Host Controller
+### Porta do Domain Controller (Host Controllers)
 
-* Usuário: `jboss`
-* Senha: `Jboss@123`
+- Porta (native mgmt): `9999` (usada por `host1` e `host2` para se conectarem ao controller)
+
+### Aplicação de exemplo
+
+- Host1: http://localhost:8080/app/
+- Host2: http://localhost:8230/app/
+- NGINX (balanceador): http://localhost/app/
+
+### Graylog (UI)
+
+- URL: http://localhost:9000
+
+> Observação: o primeiro start do Graylog/OpenSearch/MongoDB pode demorar.
 
 ---
 
 ## Estrutura do Projeto
 
-```
+```text
 JbossDomain/
 ├── domain-controller/
+│   ├── Dockerfile
+│   ├── wait-for-it.sh
+│   ├── domain.xml
+│   ├── module.xml
+│   ├── *.jar
 │   ├── app/
-│   │   ├── hello-world-war-1.0.0/
-│   │   │   ├── META-INF/
-│   │   │   ├── WEB-INF/
-│   │   │   └── index.jsp
-│   │   ├── maven-archiver/
-│   │   │   └── pom.properties
-│   │   └── app.war
 │   ├── config/
-│   │   ├── domain.xml
 │   │   └── host-master.xml
-│   ├── domain/
-│   │   └── configuration/
-│   │       ├── host-master.xml
-│   │       ├── mgmt-groups.properties
-│   │       └── mgmt-users.properties
-│   └── logs/
+│   └── domain/
+│       └── configuration/
+│           ├── mgmt-groups.properties
+│           └── mgmt-users.properties
 ├── host1/
-│   ├── config/
-│   │   └── host1.xml
-│   └── logs/
+│   └── config/
+│       └── host1.xml
 ├── host2/
-│   ├── config/
-│   │   └── host2.xml
-│   └── logs/
+│   └── config/
+│       └── host2.xml
 ├── nginx/
 │   └── nginx.conf
 └── docker-compose.yml
 ```
 
+> Persistência do MongoDB e OpenSearch é feita via volumes nomeados do Docker (veja `docker volume ls`).
+
 ---
 
 ## Arquitetura do Domain
 
-```
+```text
 Domain Controller
 ├─ host1
 │  └─ server-one (main-server-group)
 └─ host2
    └─ server-two (main-server-group)
 ```
-
-### Domain Controller
-
-* Porta de management: `9990`
-* Porta de domínio: `9999`
-* Host master: `host-master.xml`
-* Socket bindings e profiles configurados em `domain.xml`
 
 ### Hosts Gerenciados
 
@@ -130,8 +146,10 @@ Domain Controller
 
 Arquivos principais:
 
-* `host1/config/host1.xml`
-* `host2/config/host2.xml`
+- `host1/config/host1.xml`
+- `host2/config/host2.xml`
+- `domain-controller/config/host-master.xml`
+- `domain-controller/domain.xml`
 
 ---
 
@@ -139,11 +157,13 @@ Arquivos principais:
 
 WAR de exemplo:
 
-```
+```text
 domain-controller/app/app.war
 ```
 
-Deploy via CLI do Domain Controller:
+### Deploy via CLI do Domain Controller
+
+Exemplo (ajuste o comando conforme sua necessidade de server-group/host):
 
 ```bash
 /host=*/server=*/:deploy(path=domain-controller/app/app.war, enabled=true)
@@ -154,6 +174,7 @@ Deploy via CLI do Domain Controller:
 ```bash
 curl http://localhost:8080/app/
 curl http://localhost:8230/app/
+curl -I http://localhost/app/
 ```
 
 ### Undeploy
@@ -164,86 +185,42 @@ undeploy app.war --server-groups=main-server-group
 
 ---
 
-## Testes e Observabilidade
+## Troubleshooting
 
-Verificar qual host respondeu:
-
-```bash
-curl -I http://localhost/app/
-```
-
-Monitoramento via CLI:
+### Validar o compose
 
 ```bash
-/host=*/server=*/:read-attribute(name=status)
-
-/host=*/server=*/deployment=app.war:read-resource(include-runtime=true)
-
-/host=host1/server=server-one:read-boot-errors()
+docker compose config
 ```
 
-Parar e iniciar servidores:
+### Ver status dos containers
 
 ```bash
-/host=host1/server=server-one:stop
-/host=host1/server=server-one:start
+docker compose ps
 ```
 
----
+### Logs principais
 
-## Undertow e Context Paths
-
-* WAR `/app` → [http://localhost:8080/app/](http://localhost:8080/app/)
-* WAR raiz `/` → [http://localhost:8080/](http://localhost:8080/)
-
-### Experimentos sugeridos
-
-* Deploy de múltiplos WARs em hosts diferentes
-* Ajustar context path e observar comportamento do console
-* Testar failover
-* Alterar `socket-binding-port-offset`
-
----
-
-## Proxy Reverso (NGINX)
-
-Uso opcional apenas para balanceamento externo.
-
-```nginx
-upstream wildfly_cluster {
-    server host1:8080;
-    server host2:8230;
-}
-
-server {
-    listen 80;
-
-    location = /app { return 301 /app/; }
-    location /app/ {
-        proxy_pass http://wildfly_cluster/app/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Backend $upstream_addr;
-    }
-}
+```bash
+docker compose logs -f domain-controller host1 host2
+docker compose logs -f graylog opensearch mongodb
 ```
 
----
+### Problemas comuns
 
-## Pontos de Aprendizado
-
-* Entender Domain Mode e gerenciamento centralizado
-* Diferença entre deploy por server-group e por host
-* Uso de `socket-binding-port-offset`
-* Observabilidade via CLI
-* Testes de failover
-* Troubleshooting de boot e runtime
+- **Domain Controller não sobe**: verifique se o `docker-compose.yml` **não** está esperando `domain-controller:9999` dentro do próprio serviço `domain-controller` (deadlock).
+- **Build falha no Dockerfile**: verifique se `domain-controller/Dockerfile` não contém marcadores de conflito (`<<<<<<<`, `=======`, `>>>>>>>`).
+- **Login no console falha**: pode haver divergência entre usuários criados no build (`add-user.sh`) e os arquivos montados via volume (`mgmt-users.properties`).
+- **MongoDB cai com WiredTiger/permission**: rode:
+  ```bash
+  docker compose down -v --remove-orphans
+  docker compose up -d
+  ```
 
 ---
 
 ## Referências
 
-* WildFly Documentation
-* WildFly CLI Guide
-* Domain Mode Overview
+- WildFly Documentation
+- WildFly CLI Guide
+- Domain Mode Overview
